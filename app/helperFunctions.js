@@ -1,11 +1,4 @@
-
-const contentTypes = {
-  text: 'text/plain',
-  json: 'application/json',
-  image: ['image/gif', 'image/jpeg', 'image/pjpeg', 'image/png', 'image/svg+xml', 'image/tiff', 'image/vnd',
-    'image/vnd.wap.wbmp', 'image/webp'],
-};
-
+import { contentTypes } from './bodyParser.js';
 
 export const parseRequestData = (data) => {
   const splittedData = data.split('\r\n');
@@ -22,9 +15,21 @@ export const parseRequestData = (data) => {
     headers[key] = joined.trim();
   }
 
-  const body = splittedData.slice(headersFinishIndex + 1);
+  const [body] = splittedData.slice(headersFinishIndex + 1);
 
   return {
     headers, body, method, path, queryString,
   };
+};
+
+export const makeResponse = (payload, connection, respContentType) => {
+  connection.write(
+    'HTTP/1.1 200 OK\n'
+    + `Content-Type: ${contentTypes[respContentType]}\n`
+    + '\n'
+    + ''
+    + '\n'
+    + `${respContentType === contentTypes.json ? JSON.stringify({ payload }) : payload}`,
+    () => connection.end(),
+  );
 };

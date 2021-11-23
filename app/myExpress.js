@@ -1,5 +1,11 @@
 import * as net from 'net';
-import { parseRequestData } from './helperFunctions.js';
+import { makeResponse, parseRequestData } from './helperFunctions.js';
+import { contentTypes } from './bodyParser.js';
+
+const methods = {
+  GET: 'GET',
+  POST: 'POST',
+};
 
 class MyExpress {
   constructor() {
@@ -13,20 +19,44 @@ class MyExpress {
         const req = {
           body: parsedData.body,
           path: parsedData.path,
+          headers: parsedData.headers,
+          method: parsedData.method,
         };
 
         const res = {
           send: (payload) => {
-            c.write('HTTP/1.1 200 OK\n'
-              + 'Content-Type: text/html\n'
-              + '\n'
-              + `<html lang="us"><head><title>Test title</title></head><h1>${payload}</h1><p>Random description</p></html>`, () => c.end());
+            makeResponse(payload, c, contentTypes.html);
+          },
+
+          json: (payload) => {
+            makeResponse(payload, c, contentTypes.json);
           },
         };
         this.middleware(req, res);
       });
-      c.pipe(c);
     });
+  }
+
+  get(path, handlerMw) {
+    const getHandlerMiddleware = (req, res, next) => {
+      if (req.path === path && req.method === methods.GET) {
+        handlerMw(req, res, next);
+      }
+      next();
+    };
+
+    this.stack.push(getHandlerMiddleware);
+  }
+
+  post(path, handlerMw) {
+    const postHandlerMiddleware = (req, res, next) => {
+      if (req.path === path && req.method === methods.POST) {
+        handlerMw(req, res, next);
+      }
+      next();
+    };
+
+    this.stack.push(postHandlerMiddleware);
   }
 
   use(middleware) {
@@ -40,16 +70,16 @@ class MyExpress {
   middleware(request, response, callback) {
     let stackMiddlewareIndex = 0;
 
-    const next = () => {
+    const nextStackMiddleware = () => {
       if (stackMiddlewareIndex >= this.stack.length) {
         return () => callback();
       }
       // eslint-disable-next-line no-plusplus
-      const layer = this.stack[stackMiddlewareIndex++];
-      layer(request, response, next);
+      const currentStackMiddleware = this.stack[stackMiddlewareIndex++];
+      currentStackMiddleware(request, response, nextStackMiddleware);
     };
 
-    next();
+    nextStackMiddleware();
   }
 }
 
