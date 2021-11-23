@@ -1,0 +1,66 @@
+{
+  "env": {
+    "node": true
+  },
+  "parser": "@typescript-eslint/parser",
+  "extends": [
+    "airbnb-base",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "ignorePatterns": ["build/*", "public/*", "docs/*"],
+  "rules": {
+    "curly": ["error", "all"],
+    "no-param-reassign": "off",
+    "no-return-assign": [
+      "error",
+      "except-parens"
+    ],
+    "semi": "error",
+    "import/prefer-default-export": "off",
+    "class-methods-use-this": "off",
+    "max-classes-per-file": "off",
+    "padding-line-between-statements": ["error", { "blankLine": "always", "prev": "*", "next": "return" }],
+    "quotes": ["error", "single"],
+    "no-underscore-dangle": "off",
+    "no-unused-expressions": ["error", { "allowShortCircuit": true }],
+    "prefer-destructuring": "off",
+    "camelcase": "error",
+    "mocha/no-mocha-arrows": "off",
+    "mocha/no-setup-in-describe": "off",
+    "max-len": ["error", {"ignoreComments": true ,"code":  120}],
+    "no-multiple-empty-lines": ["error", { "max": 2 }],
+    "strict": 0,
+    "no-shadow": "off",
+    "@typescript-eslint/no-shadow": ["error"],
+    "@typescript-eslint/camelcase": "off",
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/no-unused-vars": [2, { "args": "none" }],
+    "@typescript-eslint/no-use-before-define": "off",
+    "@typescript-eslint/no-empty-function": "off",
+    "@typescript-eslint/no-explicit-any": "off",
+    "import/extensions": [
+      "error",
+      "ignorePackages",
+      {
+        "js": "never",
+        "jsx": "never",
+        "ts": "never",
+        "tsx": "never",
+        "mjs": "ever"
+      }
+    ]
+  },
+  "settings": {
+    "import/resolver": {
+      "node": {
+        "extensions": [
+          ".js",
+          ".jsx",
+          ".ts",
+          ".tsx",
+          ".d.ts"
+        ]
+      }
+    }
+  }
+}
