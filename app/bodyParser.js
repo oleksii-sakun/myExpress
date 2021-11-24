@@ -1,9 +1,13 @@
 export const contentTypes = {
-  text: 'text/plain',
-  html: 'text/html',
   json: 'application/json',
-  image: ['image/gif', 'image/jpeg', 'image/pjpeg', 'image/png', 'image/svg+xml', 'image/tiff', 'image/vnd',
-    'image/vnd.wap.wbmp', 'image/webp'],
+  html: 'text/html',
+  txt: 'text/plain',
+  css: 'text/css',
+  gif: 'image/gif',
+  jpg: 'image/jpeg',
+  png: 'image/png',
+  svg: 'image/svg+xml',
+  js: 'application/javascript',
 };
 
 const bodyParser = {

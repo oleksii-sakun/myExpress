@@ -1,4 +1,6 @@
 import * as net from 'net';
+import * as fs from 'fs';
+import * as path from 'path';
 import { makeResponse, parseRequestData } from './helperFunctions.js';
 import { contentTypes } from './bodyParser.js';
 
@@ -26,6 +28,31 @@ class MyExpress {
         const res = {
           send: (payload) => {
             makeResponse(payload, c, contentTypes.html);
+          },
+
+          sendFile: (fileName, cb) => {
+            const baseDir = path.join(process.cwd());
+            const readStream = fs.createReadStream(`${baseDir}${fileName}`);
+            readStream.on('error', (error) => {
+              cb(error);
+            });
+
+            setTimeout(() => readStream.on('close', () => cb()), 0);
+
+            const response = 'HTTP/1.1 200 OK\n'
+                + `Content-Type: ${contentTypes.jpg}\n`
+                + '\n';
+
+            setTimeout(() => {
+              try {
+                c.write(
+                  response,
+                );
+                readStream.pipe(c);
+              } catch (e) {
+                console.log('sendFileError', e);
+              }
+            }, 0);
           },
 
           json: (payload) => {
