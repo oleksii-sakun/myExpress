@@ -1,8 +1,8 @@
 import * as net from 'net';
-import * as fs from 'fs';
-import * as path from 'path';
-import { makeResponse, parseRequestData } from './helperFunctions.js';
-import { contentTypes } from './bodyParser.js';
+import {
+  sendResponse, parseRequestData, sendFileHandler, httpMethodsHandler,
+} from './utils.js';
+import { contentTypes } from './middlewares/bodyParser.js';
 
 const methods = {
   GET: 'GET',
@@ -13,75 +13,52 @@ class MyExpress {
   constructor() {
     this.stack = [];
     this.server = net.createServer((c) => {
-      console.log('client connected', c.remoteAddress);
       c.setEncoding('utf-8');
 
       c.on('data', (data) => {
-        const parsedData = parseRequestData(data);
+        const {
+          headers, body, method, path,
+        } = parseRequestData(data);
         const req = {
-          body: parsedData.body,
-          path: parsedData.path,
-          headers: parsedData.headers,
-          method: parsedData.method,
+          body,
+          path,
+          headers,
+          method,
         };
 
         const res = {
+          status(statusCode) {
+            res.statusCode = statusCode;
+
+            return res;
+          },
+
           send: (payload) => {
-            makeResponse(payload, c, contentTypes.html);
+            sendResponse(payload, c, contentTypes.html, res.statusCode || 200);
           },
 
           sendFile: (fileName, cb) => {
-            const baseDir = path.join(process.cwd());
-            const readStream = fs.createReadStream(`${baseDir}${fileName}`);
-            readStream.on('error', (error) => {
-              cb(error);
-            });
-
-            setTimeout(() => readStream.on('close', () => cb()), 0);
-
-            const response = 'HTTP/1.1 200 OK\n'
-                + `Content-Type: ${contentTypes.jpg}\n`
-                + '\n';
-
-            setTimeout(() => {
-              try {
-                c.write(
-                  response,
-                );
-                readStream.pipe(c);
-              } catch (e) {
-                console.log('sendFileError', e);
-              }
-            }, 0);
+            sendFileHandler(fileName, cb, c, res.statusCode || 200);
           },
 
           json: (payload) => {
-            makeResponse(payload, c, contentTypes.json);
+            sendResponse(payload, c, contentTypes.json, res.statusCode || 200);
           },
+
         };
         this.middleware(req, res);
       });
     });
   }
 
-  get(path, handlerMw) {
-    const getHandlerMiddleware = (req, res, next) => {
-      if (req.path === path && req.method === methods.GET) {
-        handlerMw(req, res, next);
-      }
-      next();
-    };
+  get(routePath, handlerMw) {
+    const getHandlerMiddleware = httpMethodsHandler(routePath, handlerMw, methods.GET);
 
     this.stack.push(getHandlerMiddleware);
   }
 
-  post(path, handlerMw) {
-    const postHandlerMiddleware = (req, res, next) => {
-      if (req.path === path && req.method === methods.POST) {
-        handlerMw(req, res, next);
-      }
-      next();
-    };
+  post(routePath, handlerMw) {
+    const postHandlerMiddleware = httpMethodsHandler(routePath, handlerMw, methods.POST);
 
     this.stack.push(postHandlerMiddleware);
   }
