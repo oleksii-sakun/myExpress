@@ -1,32 +1,66 @@
 import * as net from 'net';
-import { parseRequestData } from './helperFunctions.js';
+import {
+  sendResponse, parseRequestData, sendFileHandler, httpMethodsHandler,
+} from './utils.js';
+import { contentTypes } from './middlewares/bodyParser.js';
+
+const methods = {
+  GET: 'GET',
+  POST: 'POST',
+};
 
 class MyExpress {
   constructor() {
     this.stack = [];
     this.server = net.createServer((c) => {
-      console.log('client connected', c.remoteAddress);
       c.setEncoding('utf-8');
 
       c.on('data', (data) => {
-        const parsedData = parseRequestData(data);
+        const {
+          headers, body, method, path,
+        } = parseRequestData(data);
         const req = {
-          body: parsedData.body,
-          path: parsedData.path,
+          body,
+          path,
+          headers,
+          method,
         };
 
         const res = {
-          send: (payload) => {
-            c.write('HTTP/1.1 200 OK\n'
-              + 'Content-Type: text/html\n'
-              + '\n'
-              + `<html lang="us"><head><title>Test title</title></head><h1>${payload}</h1><p>Random description</p></html>`, () => c.end());
+          status(statusCode) {
+            res.statusCode = statusCode;
+
+            return res;
           },
+
+          send: (payload) => {
+            sendResponse(payload, c, contentTypes.html, res.statusCode || 200);
+          },
+
+          sendFile: (fileName, cb) => {
+            sendFileHandler(fileName, cb, c, res.statusCode || 200);
+          },
+
+          json: (payload) => {
+            sendResponse(payload, c, contentTypes.json, res.statusCode || 200);
+          },
+
         };
         this.middleware(req, res);
       });
-      c.pipe(c);
     });
+  }
+
+  get(routePath, handlerMw) {
+    const getHandlerMiddleware = httpMethodsHandler(routePath, handlerMw, methods.GET);
+
+    this.stack.push(getHandlerMiddleware);
+  }
+
+  post(routePath, handlerMw) {
+    const postHandlerMiddleware = httpMethodsHandler(routePath, handlerMw, methods.POST);
+
+    this.stack.push(postHandlerMiddleware);
   }
 
   use(middleware) {
@@ -40,16 +74,16 @@ class MyExpress {
   middleware(request, response, callback) {
     let stackMiddlewareIndex = 0;
 
-    const next = () => {
+    const nextStackMiddleware = () => {
       if (stackMiddlewareIndex >= this.stack.length) {
         return () => callback();
       }
       // eslint-disable-next-line no-plusplus
-      const layer = this.stack[stackMiddlewareIndex++];
-      layer(request, response, next);
+      const currentStackMiddleware = this.stack[stackMiddlewareIndex++];
+      currentStackMiddleware(request, response, nextStackMiddleware);
     };
 
-    next();
+    nextStackMiddleware();
   }
 }
 
